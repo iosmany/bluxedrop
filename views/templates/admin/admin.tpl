@@ -1,5 +1,3 @@
-
-
 <div class="container-fluid">
     <div class="row">
         <div class="col-lg-12">
@@ -22,18 +20,3 @@
         </div>
     </div>
 </div>
-
-
-<script>
-    var xhttp = new XMLHttpRequest();
-    xhttp.onreadystatechange = function() {
-        if (this.readyState == 4 && this.status == 200) {
-            console.log(this);
-        }
-    };
-    xhttp.open("GET", "http://drop.novaengel.com/api/products/availables/4b791d7a-76e3-4b9b-ab5c-9bc8669bdf6d/es", true);
-    xhttp.setRequestHeader('Access-Control-Allow-Origin', null );
-    xhttp.setRequestHeader('Origin', null );
-    xhttp.setRequestHeader('content-type', 'application/json' );
-    xhttp.send();
-</script>
