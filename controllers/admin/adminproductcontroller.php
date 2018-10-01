@@ -10,6 +10,7 @@ include_once '../../classes/utiles.php';
 
 class AdminProductController extends AdminController
 {
+    protected $split_count = 20;
     protected $url_base = 'http://drop.novaengel.com';
     public function __construct()
     {
@@ -24,9 +25,23 @@ class AdminProductController extends AdminController
         //http response json
         $data_array = json_decode($http_response, true); //array asociativo
         //analizar por partes
-        foreach (array_chunk($data_array, 100) as $parte => $arr)
+        foreach (array_chunk($data_array, $this->split_count) as $parte => $elementos)
         {
-            
+            $ids = array();
+            foreach ($elementos as $index => $value)
+            {
+                $ids[] = $value['Id'];
+            }
+            $query = new DbQuery();
+            $query->from('`ps_product`');
+            $query->where('`id_product` in (select '.implode( ' ,' , $elementos).')');
+            $query->select('id_product');
+
+            $result = Db::getInstance()->executeS($query->build());
+            if($result && count($result) == $this->split_count)
+            {
+                
+            }
         }
     }
 
