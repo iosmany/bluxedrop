@@ -1,0 +1,5 @@
+your_route_name:
+    path: bluxedrop/load
+    methods: [POST]
+    defaults:
+      _controller: 'bluxedrop\controller\admin\cargacontroller::loadAction'

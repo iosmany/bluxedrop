@@ -1,17 +1,13 @@
 <?php
 /**
- * Created by PhpStorm.
- * User: iosrd
- * Date: 01/10/2018
- * Time: 20:41
- */
+*Creado por Iosmany Rodriguez
+*01-10-2018
+*/
+//namespace bluxedrop\controller\admin;
 
-include_once '../../classes/utiles.php';
-include_once '../../classes/product.php';
-
-class AdminProductController extends AdminController
+class AdminDropController extends AdminController
 {
-    protected $split_count = 20;
+	protected $split_count = 20;
     protected $url_base = 'http://drop.novaengel.com';
     
     public function __construct()

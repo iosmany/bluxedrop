@@ -11,9 +11,9 @@
                     </div>
                 </div>
                 <div class="panel-footer">
-                    <button name="submitbluxedrop" class="btn btn-default pull-right" id="configuration_form_submit_btn" type="submit" value="1">
-                        <i class="process-icon-update"></i> Load
-                    </button>
+                    <a href="{$path}" name="submitbluxedropload"  class="btn btn-default pull-right" id="admindrop_form_submit_btn" type="submit" value="1">
+                        <i class="process-icon-update"></i> Get Products
+                    </a>
                 </div>
             </div>
 
