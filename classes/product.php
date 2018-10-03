@@ -2,7 +2,7 @@
 <?php
 
 
-class BluxeProduct
+class ProductDTO extends ObjectModel
 {
 	public $id;
 	public $eans = array();
@@ -28,15 +28,4 @@ class BluxeProduct
 	{
 		
 	}
-
-    public function from_json($json_data)
-    {
-        $decoded = json_decode($json_data, true);
-        foreach($decoded as $key => $val) {
-            if(property_exists(__CLASS__, $key)) {
-                $this->$key = $val;
-            }
-        }
-    }
-
 } 
