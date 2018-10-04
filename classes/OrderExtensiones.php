@@ -1,14 +1,6 @@
 <?php
 
-
-
-public class ClientOrderLineModel
-{
- 	public $productId;
- 	public $units;
-}
-
-class ClientOrderModel
+class OrderExtensiones
 {
 	 public $ordernumber;
 	 public $valoration;
@@ -23,4 +15,10 @@ class ClientOrderModel
 	 public $county;
 	 public $postalcode;
 	 public $country;
+}
+
+class ClientOrderLineModel
+{
+    public $productId;
+    public $units;
 }

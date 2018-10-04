@@ -12,10 +12,13 @@ if (!defined('_PS_MODE_DEV_')) {
 	exit;
 }
 
+include 'config/ModuleConfigs.php';
 include 'classes/utiles.php';
-include 'classes/product.php';
-include 'classes/accessdata.php';
-//include_once '../../classes/Product.php';
+include 'classes/BluxeAccess.php';
+include 'classes/CategoryExtensiones.php';
+include 'classes/OrderExtensiones.php';
+include 'classes/ProductExtensiones.php';
+include 'classes/StockExtensiones.php';
 
 class Bluxedrop extends Module
 {
@@ -58,35 +61,13 @@ class Bluxedrop extends Module
 	      return $this->display(__FILE__, 'bluxedrop.tpl');
 	}
 
-	public function hookDisplayRightColumn($params)
-	{
-	    return $this->hookDisplayLeftColumn($params);
-	}
-
-	public function hookDisplayHeader()
-	{
-	    $this->context->controller->addCSS($this->_path.'css/bluxedrop.css', 'all');
-	}
-
-	public function hookDisplayHome()
-	{
-	   $this->context->smarty->assign([
-	        'my_module_name' => Configuration::get('BLUXEDROP_NAME'),
-	        'my_module_link' => $this->context->link->getModuleLink('bluxedrop', 'display'),
-	        'my_module_message' => $this->l('This is a simple text message')
-	      ]);
-	    return $this->display(__FILE__, 'bluxedrop.tpl');
-	}
-
 	public function install()
 	{
 	    if (Shop::isFeatureActive()) {
 	        Shop::setContext(Shop::CONTEXT_ALL);
 	    }
 
-	    if (!parent::install() || !$this->installsql() ||
-	        !$this->registerHook('leftColumn') ||
-	        !$this->registerHook('header') ||
+	    if (!parent::install() || !ModuleConfigs::installsql() ||
 	        !Configuration::updateValue('BLUXEDROP_NAME', 'Bluxe Dropshiping'))
 	    {
 	        return false;
@@ -96,34 +77,13 @@ class Bluxedrop extends Module
 
 	public function uninstall()
 	{
-	    if (!parent::uninstall() || !$this->uninstallsql() || !Configuration::deleteByName('BLUXEDROP_NAME'))
+	    if (!parent::uninstall() || !ModuleConfigs::uninstallsql()
+            || !Configuration::deleteByName('BLUXEDROP_NAME'))
 	    {
 	        return false;
 	    }
 	    return true;
 	}
-
-	public function installsql()
-	{
-        $sql = "CREATE TABLE IF NOT EXISTS `"._DB_PREFIX_.$this->table_name."` (
-              `user` varchar(50) NOT NULL PRIMARY KEY,
-              `password` varchar(20) NOT NULL,
-              `token` varchar(250) NULL,
-              `date_add` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP(),
-              `date_upd` datetime NULL
-            ) ENGINE = "._MYSQL_ENGINE_;
-
-        return !Db::getInstance()->execute($sql);
-	}
-
-    public function uninstallsql()
-    {
-        $sql = "DROP TABLE IF EXISTS `"._DB_PREFIX_.$this->table_name."`";
-        if (!Db::getInstance()->execute($sql)) {
-            return false;
-        }
-        return true;
-    }
 
     /**
      * Chequea si existe un registro de credenciales
@@ -302,21 +262,20 @@ class Bluxedrop extends Module
         {
             //http response json
             $data_array = json_decode($http_response, true); //array asociativo
-            if(count($data_array) > 0){
+            if(!empty($data_array)){
                     //analizar por partes
                     foreach (array_chunk($data_array, $split_count) as $parte => $elementos)
                     {
-                        foreach ($elementos as $index => $value)
+                        foreach ($elementos as $value)
                         {
                            try
                            {
-                               $current = new BluxeProductModel();
-                               $current->from_array($value);
-                               //categoria
-                               $current->save_category();
-                               $current->save_brand();
-                               $current->save();
-                           }catch(Exception $ex)
+                               $modelo = new ProductModel();
+                               $modelo->from_array($value);
+                               $current = new ProductExtensiones();
+                               $current->_save($modelo);
+                           }
+                           catch(Exception $ex)
                            {
 
                            }

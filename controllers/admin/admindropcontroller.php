@@ -27,7 +27,7 @@ class AdminDropController extends AdminController
         {
             foreach ($elementos as $index => $value)
             {
-                $current = new BluxeProductModel();
+                $current = new ProductExtensiones();
                 $current->from_array($value);
                 $current->save();                
             }
