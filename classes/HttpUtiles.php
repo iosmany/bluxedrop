@@ -21,6 +21,7 @@ class HttpUtiles
         // Close request to clear up some resources
         curl_close($curl);
         return $http_response;*/
+
         $url = $baseurl.'/'.$path_and_query;
         $opts = array('http'=> array('method' => 'GET', "content-type" => 'application/json'));
         $context = stream_context_create($opts);

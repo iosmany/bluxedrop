@@ -6,7 +6,7 @@
  * Time: 22:50
  */
 
-class StockModel
+class StockModel extends ModelExtensiones
 {
     public $id;
     public $stock;
@@ -16,20 +16,14 @@ class StockModel
     {
     }
 
-    public function from_json($json_object = "")
+    public function from_json($json_object = "", $class = __CLASS__)
     {
-        $decoded = json_decode($json_object, true);
-        $this->from_array($decoded);
+        parent::from_json($json_object, $class);
     }
 
-    public function from_array($array_data)
+    public function from_array(array $array_data = null, $class = __CLASS__)
     {
-        foreach($array_data as $key => $val) {
-            $key = strtolower($key);
-            if(property_exists(__CLASS__, $key)) {
-                $this->$key = $val;
-            }
-        }
+        parent::from_array($array_data, $class);
     }
 }
 

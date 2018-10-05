@@ -6,7 +6,7 @@
  * Time: 20:41
  */
 
-include_once '../../classes/utiles.php';
+include_once '../../classes/HttpUtiles.php';
 include_once '../../classes/product.php';
 
 class AdminProductController extends AdminController

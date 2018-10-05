@@ -13,12 +13,14 @@ if (!defined('_PS_MODE_DEV_')) {
 }
 
 include 'config/ModuleConfigs.php';
-include 'classes/utiles.php';
+include 'classes/HttpUtiles.php';
 include 'classes/BluxeAccess.php';
 include 'classes/CategoryExtensiones.php';
 include 'classes/OrderExtensiones.php';
 include 'classes/ProductExtensiones.php';
 include 'classes/StockExtensiones.php';
+include 'classes/ManufacturerExtensiones.php';
+
 
 class Bluxedrop extends Module
 {
@@ -44,30 +46,12 @@ class Bluxedrop extends Module
         $this->confirmUninstall = $this->l('Are you sure you want to uninstall?');
 	}	
 
-	/*
-	/views/templates/front/: front office features.
-	/views/templates/admin/: back office features.
-	/views/templates/hook/: features hooked to a PrestaShop (so can be displayed either on the front office or the back office).
-	*/
-
-	//hooks
-	public function hookDisplayLeftColumn($params)
-	{
-	    $this->context->smarty->assign([
-	        'my_module_name' => Configuration::get('BLUXEDROP_NAME'),
-	        'my_module_link' => $this->context->link->getModuleLink('bluxedrop', 'display'),
-	        'my_module_message' => $this->l('This is a simple text message')
-	      ]);
-	      return $this->display(__FILE__, 'bluxedrop.tpl');
-	}
-
-	public function install()
-	{
+	public function install(){
 	    if (Shop::isFeatureActive()) {
 	        Shop::setContext(Shop::CONTEXT_ALL);
 	    }
 
-	    if (!parent::install() || !ModuleConfigs::installsql() ||
+	    if (!parent::install() || !ModuleConfigs::installsql($this->table_name) ||
 	        !Configuration::updateValue('BLUXEDROP_NAME', 'Bluxe Dropshiping'))
 	    {
 	        return false;
@@ -75,9 +59,8 @@ class Bluxedrop extends Module
 	    return true;
 	}
 
-	public function uninstall()
-	{
-	    if (!parent::uninstall() || !ModuleConfigs::uninstallsql()
+	public function uninstall(){
+	    if (!parent::uninstall() || !ModuleConfigs::uninstallsql($this->table_name)
             || !Configuration::deleteByName('BLUXEDROP_NAME'))
 	    {
 	        return false;
@@ -85,15 +68,7 @@ class Bluxedrop extends Module
 	    return true;
 	}
 
-    /**
-     * Chequea si existe un registro de credenciales
-     * @param null $user
-     * @return array|false
-     * @throws PrestaShopDatabaseException
-     * @throws PrestaShopException
-     */
-    public function check_registry($user = null)
-    {
+    public function check_registry($user = null){
         $query = new DbQuery();
         $query->select('*');
         $query->limit('1');
@@ -101,8 +76,7 @@ class Bluxedrop extends Module
         return Db::getInstance()->executeS($query->build());
     }
 
-	public function getContent()
-	{
+	public function getContent(){
 	    $output = '';
 	    $acces_data = false;
 
@@ -154,19 +128,16 @@ class Bluxedrop extends Module
         {
             $acces_data = new BluxeAccess();
             $credentials = $this->check_registry();
-            if($credentials)
-            {
+            if($credentials){
                 $acces_data->user = $credentials[0]['user'];
                 $acces_data->password = $credentials[0]['password'];
                 $acces_data->token = $credentials[0]['token'];
                 $output .= $this->displayConfirmation($this->l('Access credentials loaded'));
             }
-            else
-            {
+            else{
                 $output .= $this->displayWarning($this->l('Access credentials are needed'));
             }
         }
-
         $href = AdminController::$currentIndex.'&configure='.$this->name.'&action=loadproducts&auth='.$acces_data->token.'&token='.Tools::getAdminTokenLite('AdminModules');
         $this->context->smarty->assign(array("path"=> $href));
         $append = $this->display(__FILE__, '\views\templates\admin\admin.tpl');
@@ -248,42 +219,50 @@ class Bluxedrop extends Module
         return $helper->generateForm($fieldsForm);
 	}
 
-    public function load_products_from_api()
-    {
+    public function load_products_from_api(){
         $message = '';
         $split_count = 20;
         $access_token = Tools::getValue('auth');
 
+        //die(json_encode($this->context->shop));
+        $language = Language::getLanguage($this->context->language->id);
+        //die(json_encode($language));
+
         $url_base = 'http://drop.novaengel.com';
-        $path = '/api/products/availables/'.$access_token.'/es';
+        $path = '/api/products/availables/'.$access_token.'/'.$language['iso_code'];
 
         $http_response = HttpUtiles::http_get_request($url_base, $path);
-        if($http_response)
-        {
+        if($http_response){
             //http response json
             $data_array = json_decode($http_response, true); //array asociativo
             if(!empty($data_array)){
-                    //analizar por partes
-                    foreach (array_chunk($data_array, $split_count) as $parte => $elementos)
-                    {
-                        foreach ($elementos as $value)
-                        {
-                           try
-                           {
-                               $modelo = new ProductModel();
-                               $modelo->from_array($value);
-                               $current = new ProductExtensiones();
-                               $current->_save($modelo);
-                           }
-                           catch(Exception $ex)
-                           {
 
-                           }
-                        }
+                $query = new DbQuery();
+                $query->select('id_product');
+                $query->from('product');
+                $productsids = array();
+                foreach (Db::getInstance()->executeS($query->build()) as $obj){
+                    $productsids[] = (int)$obj['id_product'];
+                }
+                //die(json_encode($productsids));
+                foreach (array_chunk($data_array, $split_count) as $parte => $elementos){
+                    foreach ($elementos as $value){
+                       try {
+                           $modelo = new ProductModel();
+                           $modelo->from_array($value);
+
+                           $current = new ProductExtensiones((int)$modelo->id, false, (int)$language['id_lang'], $this->context->shop->id);
+                           $current->_save($modelo, $productsids);
+
+                       } catch(Exception $ex){
+                           die('Error cargando producto : '.$ex->getMessage());
+                       }
+                    }
+                    break;
                 }
             }
             else
-                $message .= $this->displayError($this->l('Upsssss!! Respuesta api vacía [].'));
+                $message .= $this->displayWarning($this->l('Upsssss!! Respuesta api vacía [].'));
         }
         else
             $message .= $this->displayError($this->l('Get products http response invalid. Upsssss!!'));

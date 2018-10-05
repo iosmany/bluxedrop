@@ -8,6 +8,10 @@
 
 class ModuleConfigs
 {
+    public function __construct()
+    {
+    }
+
     public static function installsql($tablename = "")
     {
         $sql = "CREATE TABLE IF NOT EXISTS `"._DB_PREFIX_.$tablename."` (
@@ -18,7 +22,7 @@ class ModuleConfigs
               `date_upd` datetime NULL
             ) ENGINE = "._MYSQL_ENGINE_;
 
-        return !Db::getInstance()->execute($sql);
+        return Db::getInstance()->execute($sql);
     }
 
     public static function uninstallsql($tablename = "")
