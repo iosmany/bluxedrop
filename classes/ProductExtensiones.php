@@ -15,9 +15,10 @@ class ProductExtensiones extends Product
 
     public function __construct($id_product = null, $full = false, $id_lang = null, $id_shop = null)
     {
-        parent::__construct($id_product, $full, $id_lang, $id_shop, null);
         $this->langId = $id_lang;
         $this->shopId = $id_shop;
+
+        parent::__construct($id_product, $full, $id_lang, $id_shop, null);
     }
 
     public function _save(ProductModel $modelo = null, array $products_ids_indb = []){
@@ -27,9 +28,12 @@ class ProductExtensiones extends Product
         $categories_ids = $modelo->save_category($this->langId, $this->shopId);
         $manufacturer = $modelo->save_brand($this->langId, $this->shopId);
 
-        $this->id = $modelo->id;
+        //$result = in_array($modelo->id, $products_ids_indb);
+        //die(isset($this->id).', '.isset($result).', '.$modelo->id);
+
         if(!in_array($modelo->id, $products_ids_indb)){
 
+            $this->id = $modelo->id;
             $this->name = $modelo->description;
             $this->description = $modelo->setcontent;
             $this->on_sale = true;
@@ -43,18 +47,19 @@ class ProductExtensiones extends Product
             $this->show_price = 1;
             $this->is_virtual = 0;
             $this->state = 1;
+            $this->indexed = 1;
             $this->available_date = date('Y-m-d H:i:s');
             $this->link_rewrite = Tools::link_rewrite($this->name);
             $this->id_manufacturer = $manufacturer->id;
-            $this->quantity = $modelo->stock;
 
             die('Add: '.json_encode($this));
             $this->add();
-        } else {
-            $this->quantity = $modelo->stock;
-            die("Upd: ".json_encode($this));
-            $this->update();
         }
+
+        $this->quantity = $modelo->stock;
+        die("Upd: ".json_encode($this));
+        $this->update();
+
 
         if(!empty($categories_ids)){
             $this->addToCategories($categories_ids);
@@ -64,16 +69,16 @@ class ProductExtensiones extends Product
     }
 
     public function save_stock(){
-        $available = StockAvailable::getStockAvailableIdByProductId($this->id);
-        if($available){
+        $id_stock = StockAvailable::getStockAvailableIdByProductId($this->id);
+        if($id_stock){
             //die(json_encode($available));
-            $stock = new StockExtensiones($available, $this->langId, $this->shopId);
+            $stock = new StockExtensiones($id_stock, $this->langId, $this->shopId);
 
             $stock->id_product = $this->id;
             $stock->quantity = $this->quantity;
 
             if(!Validate::isLoadedObject($stock)){
-                die('Add: '.json_encode($stock));
+                //die('Add: '.json_encode($stock));
                 $stock->add();
             }
             else{

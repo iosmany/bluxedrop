@@ -248,9 +248,9 @@ class Bluxedrop extends Module
                 foreach (array_chunk($data_array, $split_count) as $parte => $elementos){
                     foreach ($elementos as $value){
                        try {
+
                            $modelo = new ProductModel();
                            $modelo->from_array($value);
-
                            $current = new ProductExtensiones((int)$modelo->id, false, (int)$language['id_lang'], $this->context->shop->id);
                            $current->_save($modelo, $productsids);
 
