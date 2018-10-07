@@ -76,6 +76,10 @@ class Bluxedrop extends Module
         return Db::getInstance()->executeS($query->build());
     }
 
+    public function login(){
+
+    }
+
 	public function getContent(){
 	    $output = '';
 	    $acces_data = false;
@@ -168,13 +172,6 @@ class Bluxedrop extends Module
                     'name' => 'BLUXEDROP_PASS',
                     'size' => 20,
                     'required' => true
-                ],
-                [
-                    'type' => 'text',
-                    'label' => $this->l('Authorization'),
-                    'name' => 'BLUXEDROP_TOKEN',
-                    'size' => 100,
-                    'disabled' => true
                 ]
             ],
             'submit' => [
@@ -214,14 +211,13 @@ class Bluxedrop extends Module
         // Load current value
         $helper->fields_value['BLUXEDROP_USER'] = $accessdata->user;
         $helper->fields_value['BLUXEDROP_PASS'] = $accessdata->password;
-        $helper->fields_value['BLUXEDROP_TOKEN'] = $accessdata->token;
 
         return $helper->generateForm($fieldsForm);
 	}
 
     public function load_products_from_api(){
         $message = '';
-        $split_count = 20;
+        $split_count = 50;
         $access_token = Tools::getValue('auth');
 
         //die(json_encode($this->context->shop));
@@ -237,13 +233,13 @@ class Bluxedrop extends Module
             $data_array = json_decode($http_response, true); //array asociativo
             if(!empty($data_array)){
 
-                $query = new DbQuery();
+                /*$query = new DbQuery();
                 $query->select('id_product');
                 $query->from('product');
                 $productsids = array();
                 foreach (Db::getInstance()->executeS($query->build()) as $obj){
                     $productsids[] = (int)$obj['id_product'];
-                }
+                }*/
                 //die(json_encode($productsids));
                 foreach (array_chunk($data_array, $split_count) as $parte => $elementos){
                     foreach ($elementos as $value){
@@ -252,7 +248,7 @@ class Bluxedrop extends Module
                            $modelo = new ProductModel();
                            $modelo->from_array($value);
                            $current = new ProductExtensiones((int)$modelo->id, false, (int)$language['id_lang'], $this->context->shop->id);
-                           $current->_save($modelo, $productsids);
+                           $current->_save($modelo);
 
                        } catch(Exception $ex){
                            die('Error cargando producto : '.$ex->getMessage());

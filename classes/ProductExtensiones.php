@@ -13,78 +13,64 @@ class ProductExtensiones extends Product
     public $langId;
     public $shopId;
 
-    public function __construct($id_product = null, $full = false, $id_lang = null, $id_shop = null)
+    public function __construct($id_product = null, $full = true, $id_lang = null, $id_shop = null)
     {
+        parent::__construct($id_product, $full, $id_lang, $id_shop, null);
         $this->langId = $id_lang;
         $this->shopId = $id_shop;
 
-        parent::__construct($id_product, $full, $id_lang, $id_shop, null);
+        //die(json_encode($this));
     }
 
-    public function _save(ProductModel $modelo = null, array $products_ids_indb = []){
+    public function _save(ProductModel $modelo = null){
         if($modelo == null)
             return false;
 
         $categories_ids = $modelo->save_category($this->langId, $this->shopId);
-        $manufacturer = $modelo->save_brand($this->langId, $this->shopId);
+        $manufacturer_id = $modelo->save_brand($this->langId, $this->shopId);
 
-        //$result = in_array($modelo->id, $products_ids_indb);
-        //die(isset($this->id).', '.isset($result).', '.$modelo->id);
+        $product_id = Product::getIdByEan13($modelo->eans[0]);
 
-        if(!in_array($modelo->id, $products_ids_indb)){
-
-            $this->id = $modelo->id;
-            $this->name = $modelo->description;
-            $this->description = $modelo->setcontent;
-            $this->on_sale = true;
+        $product = new Product($product_id, $this->langId, $this->shopId);
+        if(!$product_id){
+            $product->id = $modelo->id;
+            $product->name = $modelo->description;
+            $product->description = $modelo->setcontent;
+            $product->on_sale = true;
             if(count($modelo->eans) > 0){
-                $this->ean13 = $modelo->eans[0];
+                $product->ean13 = $modelo->eans[0];
             }
-            $this->width = $modelo->ancho;
-            $this->height = $modelo->alto;
-            $this->depth = $modelo->fondo;
-            $this->active = 1;
-            $this->show_price = 1;
-            $this->is_virtual = 0;
-            $this->state = 1;
-            $this->indexed = 1;
-            $this->available_date = date('Y-m-d H:i:s');
-            $this->link_rewrite = Tools::link_rewrite($this->name);
-            $this->id_manufacturer = $manufacturer->id;
+            $product->width = $modelo->ancho;
+            $product->height = $modelo->alto;
+            $product->depth = $modelo->fondo;
+            $product->active = 1;
+            $product->show_price = 1;
+            $product->is_virtual = 0;
+            $product->state = 1;
+            $product->indexed = 1;
+            $product->id_category_default = $categories_ids[1];
 
-            die('Add: '.json_encode($this));
-            $this->add();
+            $product->price = $modelo->price;
+            $product->unit_price = $modelo->pvr;
+            $product->unit_price_ratio = $modelo->pvr;
+
+            $product->available_date = date('Y-m-d H:i:s');
+            $product->link_rewrite = Tools::link_rewrite($this->name);
+            $product->id_manufacturer = $manufacturer_id;
+            $product->quantity = $modelo->stock;
+            //die(json_encode($this));
+            $product->supplier_name = "Beauty Luxe Distributions";
+            $product->add();
+
+            //product->addAttribute();
+            StockAvailable::setQuantity($product->id, 0, $modelo->stock, $this->id_shop);
         }
-
-        $this->quantity = $modelo->stock;
-        die("Upd: ".json_encode($this));
-        $this->update();
-
+        else
+            StockAvailable::setQuantity($product_id, 0, $modelo->stock, $this->id_shop);
 
         if(!empty($categories_ids)){
-            $this->addToCategories($categories_ids);
-        }
-
-        $this->save_stock();
-    }
-
-    public function save_stock(){
-        $id_stock = StockAvailable::getStockAvailableIdByProductId($this->id);
-        if($id_stock){
-            //die(json_encode($available));
-            $stock = new StockExtensiones($id_stock, $this->langId, $this->shopId);
-
-            $stock->id_product = $this->id;
-            $stock->quantity = $this->quantity;
-
-            if(!Validate::isLoadedObject($stock)){
-                //die('Add: '.json_encode($stock));
-                $stock->add();
-            }
-            else{
-                $stock->update();
-            }
-            die(json_encode($stock));
+            //die(json_encode($categories_ids));
+            $product->addToCategories($categories_ids);
         }
     }
 }
@@ -125,26 +111,71 @@ class ProductModel extends ModelExtensiones
     public function save_category($langId = null, $idShop = null){
         $categories_ids = array();
         if(!empty($this->families)){
-            $withoutparent = Category::getCategoriesWithoutParent();
+            $root = Category::getRootCategory($langId);
+
+            $inicio_id = $root ? $root->id : 0;
+            if($inicio_id){
+                $categories_ids[] = (int)$inicio_id;
+            }
 
             //die('Sin padre: '.json_encode($withoutparent));
-
             foreach ($this->families as $name){
                 //insert category
-                $category = new CategoryExtensiones(null, $langId, $idShop, $name, false );
-                $category->id_parent = empty($withoutparent) ? 0 : $withoutparent[0]['id_category'];
-                $category->_save();
-                $categories_ids[] = $category->id;
+                $category_id = CategoryExtensiones::getIdByName($name);
+                if(!$category_id){
+
+                    $category = new Category(null, $langId, $idShop);
+                    $category->name = $name;
+                    $category->description = $name;
+                    $category->id_shop_default = 1;
+                    $category->active = true;
+                    $category->link_rewrite = Tools::link_rewrite($name);
+                    $category->id_parent =$inicio_id;
+
+                    $category->add();
+                    $categories_ids[] = (int)$category->id;
+                }
+                else
+                    $categories_ids[] = (int)$category_id;
             }
         }
+
+        //gender
+        if(isset($this->gender)){
+            $category_id = CategoryExtensiones::getIdByName($this->gender);
+            if(!$category_id){
+                $category = new Category(null, $langId, $idShop);
+                $category->name = $this->gender;
+                $category->description = $this->gender;
+                $category->id_shop_default = 1;
+                $category->active = true;
+                $category->link_rewrite = Tools::link_rewrite($this->gender);
+                $category->id_parent = $inicio_id;
+                $category->add();
+                $categories_ids[] = (int)$category->id;
+            }
+            else
+                $categories_ids[] = (int)$category_id;
+        }
+
+        //die(json_encode($categories_ids));
         return $categories_ids;
     }
 
     public function save_brand($langId = null, $idShop = null)
     {
         //die(json_encode($this));
-        $manufacturer = new ManufacturerExtensiones(null, $langId, $this->brandname, $idShop);
-        $manufacturer->_save();
-        return $manufacturer;
+        $brand_id = Manufacturer::getIdByName($this->brandname);
+        if(!$brand_id){
+            $manufacturer = new Manufacturer(null,$langId);
+            $manufacturer->id = $this->brandid;
+            $manufacturer->name = $this->brandname;
+            $manufacturer->description = $this->brandname;
+            $manufacturer->active = true;
+            $manufacturer->id_shop_list[] = $idShop;
+            $manufacturer->add();
+            $brand_id = $manufacturer->id;
+        }
+        return $brand_id;
     }
 }
