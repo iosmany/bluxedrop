@@ -8,7 +8,8 @@
 
 class HttpUtiles
 {
-    public static function http_get_request($baseurl = "", $path_and_query = "")
+    public static $APIURL = "http://drop.novaengel.com";
+    public static function http_get_request($path_and_query = "")
     {
         // Get cURL resource
         /*$curl = curl_init();
@@ -22,19 +23,19 @@ class HttpUtiles
         curl_close($curl);
         return $http_response;*/
 
-        $url = $baseurl.'/'.$path_and_query;
+        $url = self::$APIURL.'/'.$path_and_query;
         $opts = array('http'=> array('method' => 'GET', "content-type" => 'application/json'));
         $context = stream_context_create($opts);
         $json = file_get_contents($url, false, $context);
         return $json;
     }
 
-    public static function http_post_request($baseurl = "", array $params) {
+    public static function http_post_request(array $params) {
         $query = http_build_query($params);
         $ch    = curl_init();
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_HTTPHEADER, array("content-type" => "application/json"));
-        curl_setopt($ch, CURLOPT_URL, $baseurl);
+        curl_setopt($ch, CURLOPT_URL, self::$APIURL);
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_POSTFIELDS, $query);
         $http_response = curl_exec($ch); //json result expected
@@ -47,7 +48,6 @@ class HttpUtiles
         if( !empty($replace) ) {
             $str = str_replace((array)$replace, ' ', $str);
         }
-
         $clean = iconv('UTF-8', 'ASCII//TRANSLIT', $str);
         $clean = preg_replace("/[^a-zA-Z0-9\/_|+ -]/", '', $clean);
         $clean = strtolower(trim($clean, '-'));

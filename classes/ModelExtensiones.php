@@ -8,13 +8,13 @@
 
 class ModelExtensiones
 {
-    public function from_json($json_object = "", $class = __CLASS__)
+    public function fromJson($json_object = "", $class = __CLASS__)
     {
         $decoded = json_decode($json_object, true);
-        $this->from_array($decoded, $class);
+        $this->fromArray($decoded, $class);
     }
 
-    public function from_array(array $array_data = null, $class = __CLASS__)
+    public function fromArray(array $array_data = null, $class = __CLASS__)
     {
         foreach($array_data as $key => $val){
             $key = strtolower($key);

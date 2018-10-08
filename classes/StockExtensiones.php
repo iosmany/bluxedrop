@@ -16,14 +16,14 @@ class StockModel extends ModelExtensiones
     {
     }
 
-    public function from_json($json_object = "", $class = __CLASS__)
+    public function fromJson($json_object = "", $class = __CLASS__)
     {
-        parent::from_json($json_object, $class);
+        parent::fromJson($json_object, $class);
     }
 
-    public function from_array(array $array_data = null, $class = __CLASS__)
+    public function fromArray(array $array_data = null, $class = __CLASS__)
     {
-        parent::from_array($array_data, $class);
+        parent::fromArray($array_data, $class);
     }
 }
 

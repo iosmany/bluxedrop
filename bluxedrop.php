@@ -52,6 +52,7 @@ class Bluxedrop extends Module
 	    }
 
 	    if (!parent::install() || !ModuleConfigs::installsql($this->table_name) ||
+            $this->registerHook('') ||
 	        !Configuration::updateValue('BLUXEDROP_NAME', 'Bluxe Dropshiping'))
 	    {
 	        return false;
@@ -217,7 +218,7 @@ class Bluxedrop extends Module
 
     public function load_products_from_api(){
         $message = '';
-        $split_count = 50;
+        $split_count = 55;
         $access_token = Tools::getValue('auth');
 
         //die(json_encode($this->context->shop));
@@ -225,33 +226,27 @@ class Bluxedrop extends Module
         //die(json_encode($language));
 
         $url_base = 'http://drop.novaengel.com';
-        $path = '/api/products/availables/'.$access_token.'/'.$language['iso_code'];
+        $path = 'api/products/availables/'.$access_token.'/'.$language['iso_code'];
 
-        $http_response = HttpUtiles::http_get_request($url_base, $path);
+        $http_response = HttpUtiles::http_get_request($path);
         if($http_response){
             //http response json
             $data_array = json_decode($http_response, true); //array asociativo
             if(!empty($data_array)){
 
-                /*$query = new DbQuery();
-                $query->select('id_product');
-                $query->from('product');
-                $productsids = array();
-                foreach (Db::getInstance()->executeS($query->build()) as $obj){
-                    $productsids[] = (int)$obj['id_product'];
-                }*/
-                //die(json_encode($productsids));
+                shuffle($data_array);
                 foreach (array_chunk($data_array, $split_count) as $parte => $elementos){
                     foreach ($elementos as $value){
                        try {
 
                            $modelo = new ProductModel();
-                           $modelo->from_array($value);
-                           $current = new ProductExtensiones((int)$modelo->id, false, (int)$language['id_lang'], $this->context->shop->id);
-                           $current->_save($modelo);
+                           $modelo->fromArray($value);
+                           $path = 'api/products/image/'.$access_token.'/'.$modelo->id;
+                           $current = new ProductExtensiones((int)$modelo->id, false, (int)$language['id_lang'], (int)$this->context->shop->id);
+                           $current->_save($modelo, $path);
 
                        } catch(Exception $ex){
-                           die('Error cargando producto : '.$ex->getMessage());
+                           //die('Error cargando producto : '.$ex->getMessage());
                        }
                     }
                     break;
