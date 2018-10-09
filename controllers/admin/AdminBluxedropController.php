@@ -6,13 +6,11 @@
  * Time: 10:53
  */
 
-class DropshipingController extends ModuleAdminController
+class AdminBluxedropController extends ModuleAdminController
 {
-    public function __construct(){
-
+    public function __construct()
+    {
         $this->bootstrap = true;
         parent::__construct();
     }
-
-
 }

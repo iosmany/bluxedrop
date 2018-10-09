@@ -28,12 +28,12 @@ class Bluxedrop extends Module
 	public function __construct()
 	{
 		$this->name = 'bluxedrop';
-        $this->tab = 'dashboard';
+        //$this->tab = 'AdminBluxedrop';
         $this->version = '1.0.0';
         $this->author = 'Iosmany Rdgz';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = [
-            'min' => '1.7',
+            'min' => '1.6',
             'max' => _PS_VERSION_
         ];
         $this->bootstrap = true;
@@ -50,24 +50,72 @@ class Bluxedrop extends Module
 	    if (Shop::isFeatureActive()) {
 	        Shop::setContext(Shop::CONTEXT_ALL);
 	    }
-
-	    if (!parent::install() || !ModuleConfigs::installsql($this->table_name) ||
-            $this->registerHook('') ||
-	        !Configuration::updateValue('BLUXEDROP_NAME', 'Bluxe Dropshiping'))
-	    {
-	        return false;
-	    }
-	    return true;
+	    return (parent::install()
+            && ModuleConfigs::installsql($this->table_name)
+            && $this->installTab()
+            && $this->registerHook('dashboardZoneOne')
+            && $this->registerHook('dashboardZoneTwo')
+            && $this->registerHook('dashboardData')
+            && $this->registerHook('actionAdminControllerSetMedia'));
 	}
+
+	public function installTab()
+    {
+        // Prepare tab
+        $tab = new Tab();
+        $tab->active = 1;
+        $tab->class_name = 'AdminBluxedrop';
+        $tab->name = array();
+        foreach (Language::getLanguages(true) as $lang) {
+            $tab->name[$lang['id_lang']] = 'AdminBluxedrop';
+        }
+        $tab->id_parent = -1;
+        $tab->module = $this->name;
+        return $tab->add();
+    }
+
+    public function uninstallTab()
+    {
+        // Prepare tab
+        $id_tab = (int)Tab::getIdFromClassName('AdminBluxedrop');
+        if ($id_tab) {
+            $tab = new Tab($id_tab);
+            return $tab->delete();
+        }
+        return true;
+    }
 
 	public function uninstall(){
-	    if (!parent::uninstall() || !ModuleConfigs::uninstallsql($this->table_name)
-            || !Configuration::deleteByName('BLUXEDROP_NAME'))
+	    if (!parent::uninstall()
+            || !$this->uninstallTab()
+            || !ModuleConfigs::uninstallsql($this->table_name))
 	    {
 	        return false;
 	    }
 	    return true;
 	}
+
+    public function hookActionAdminControllerSetMedia()
+    {
+        if (get_class($this->context->controller) == 'AdminBluxedropController') {
+            //$this->context->controller->addJs($this->_path.'views/js/'.$this->name.'.js');
+        }
+    }
+
+    public function hookDashboardZoneTwo($params)
+    {
+       return $this->display(__FILE__, 'dashboard_zone_two.tpl');
+    }
+
+    public function hookDashboardZoneOne($params)
+    {
+        return $this->display(__FILE__, 'dashboard_zone_one.tpl');
+    }
+
+    public function hookDashboardData($params)
+    {
+        return array();
+    }
 
     public function check_registry($user = null){
         $query = new DbQuery();
@@ -218,7 +266,7 @@ class Bluxedrop extends Module
 
     public function load_products_from_api(){
         $message = '';
-        $split_count = 55;
+        $split_count = 30;
         $access_token = Tools::getValue('auth');
 
         //die(json_encode($this->context->shop));
@@ -234,7 +282,6 @@ class Bluxedrop extends Module
             $data_array = json_decode($http_response, true); //array asociativo
             if(!empty($data_array)){
 
-                shuffle($data_array);
                 foreach (array_chunk($data_array, $split_count) as $parte => $elementos){
                     foreach ($elementos as $value){
                        try {
